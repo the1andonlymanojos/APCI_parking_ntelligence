@@ -12,12 +12,11 @@ from backend.optimizer import optimize_patrol_route
 
 app = FastAPI(title="AI Parking Congestion Intelligence API")
 
-# Load precalculated assets relative to backend directory (works 100% reliably in serverless environments)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "parking_ml_model.pkl")
-CLUSTERS_PATH = os.path.join(BASE_DIR, "hotspot_clusters.json")
-STATS_PATH = os.path.join(BASE_DIR, "overall_stats.json")
-LOCATIONS_PATH = os.path.join(BASE_DIR, "locations_db.json")
+# Load precalculated assets relative to project root (works 100% reliably in serverless environments)
+MODEL_PATH = os.path.join(os.getcwd(), "backend", "parking_ml_model.pkl")
+CLUSTERS_PATH = os.path.join(os.getcwd(), "backend", "hotspot_clusters.json")
+STATS_PATH = os.path.join(os.getcwd(), "backend", "overall_stats.json")
+LOCATIONS_PATH = os.path.join(os.getcwd(), "backend", "locations_db.json")
 
 # Load assets immediately on import (essential for stateless serverless environments like Vercel)
 # Load Hotspots Database
