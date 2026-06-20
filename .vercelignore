@@ -1,0 +1,10 @@
+.venv/
+venv/
+.git/
+.DS_Store
+*.csv
+xgb/
+requirements.txt
+Dockerfile
+README.md
+.python-version
