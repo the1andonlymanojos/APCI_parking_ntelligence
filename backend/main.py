@@ -318,7 +318,8 @@ def get_optimized_route(req: RoutingRequest):
         "total_distance_km": round(total_distance, 2)
     }
 
-# Mount frontend directory for static UI serving
-frontend_path = os.path.abspath("frontend")
-os.makedirs(frontend_path, exist_ok=True)
-app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+# Mount frontend directory for static UI serving (only when running locally, not on Vercel)
+if not os.environ.get("VERCEL"):
+    frontend_path = os.path.abspath("frontend")
+    os.makedirs(frontend_path, exist_ok=True)
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
