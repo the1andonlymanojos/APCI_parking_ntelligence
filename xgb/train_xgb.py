@@ -223,11 +223,11 @@ def run_xgb_pipeline():
         pickle.dump(meta, f)
     print(f"Saved metadata to '{META_PATH}'")
 
-    # Save backend-compatible pickle model
+    # Save backend-compatible pickle model (without scikit-learn dependency)
     backend_model_data = {
         'model': xgb_chrono,
         'features': features,
-        'label_encoder': le,
+        'label_encoder_classes': list(le.classes_),
         'cluster_centers': cluster_centers
     }
     with open('backend/parking_ml_model.pkl', 'wb') as f:

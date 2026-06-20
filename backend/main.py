@@ -52,18 +52,18 @@ if os.path.exists(MODEL_PATH):
             ml_model = model_data['model']
             feature_names = model_data['features']
             cluster_centers = model_data['cluster_centers']
-            label_encoder = model_data.get('label_encoder')
+            label_encoder_classes = model_data.get('label_encoder_classes', [])
     except Exception as e:
         print(f"Error loading ML model: {e}")
         ml_model = None
         feature_names = []
         cluster_centers = []
-        label_encoder = None
+        label_encoder_classes = []
 else:
     ml_model = None
     feature_names = []
     cluster_centers = []
-    label_encoder = None
+    label_encoder_classes = []
     print(f"Warning: {MODEL_PATH} not found. Predictions will use heuristics.")
 
 
@@ -175,17 +175,17 @@ def predict_traffic_impact(req: PredictionRequest):
 
     # Run ML prediction if model is loaded
     if ml_model:
-        # Encode vehicle_type using the saved LabelEncoder
+        # Encode vehicle_type using the saved classes list
         v_type = str(req.vehicle_type).upper()
-        if label_encoder and hasattr(label_encoder, 'classes_'):
-            if v_type not in label_encoder.classes_:
+        if label_encoder_classes:
+            if v_type not in label_encoder_classes:
                 # fallback to closest match or first
-                matches = [c for c in label_encoder.classes_ if v_type in c or c in v_type]
+                matches = [c for c in label_encoder_classes if v_type in c or c in v_type]
                 if matches:
                     v_type = matches[0]
                 else:
-                    v_type = label_encoder.classes_[0]
-            v_encoded = int(label_encoder.transform([v_type])[0])
+                    v_type = label_encoder_classes[0]
+            v_encoded = label_encoder_classes.index(v_type)
         else:
             v_encoded = 0
             
