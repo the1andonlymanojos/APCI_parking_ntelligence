@@ -20,30 +20,49 @@ LOCATIONS_PATH = os.path.join(os.getcwd(), "backend", "locations_db.json")
 
 # Load assets immediately on import (essential for stateless serverless environments like Vercel)
 # Load Hotspots Database
+hotspots_error = None
 if os.path.exists(CLUSTERS_PATH):
-    with open(CLUSTERS_PATH, 'r') as f:
-        hotspots_db = json.load(f)
+    try:
+        with open(CLUSTERS_PATH, 'r') as f:
+            hotspots_db = json.load(f)
+    except Exception as e:
+        hotspots_error = str(e)
+        hotspots_db = []
 else:
+    hotspots_error = "File not found"
     hotspots_db = []
     print(f"Warning: {CLUSTERS_PATH} not found.")
 
 # Load Overall Statistics
+stats_error = None
 if os.path.exists(STATS_PATH):
-    with open(STATS_PATH, 'r') as f:
-        overall_stats = json.load(f)
+    try:
+        with open(STATS_PATH, 'r') as f:
+            overall_stats = json.load(f)
+    except Exception as e:
+        stats_error = str(e)
+        overall_stats = {}
 else:
+    stats_error = "File not found"
     overall_stats = {}
     print(f"Warning: {STATS_PATH} not found.")
 
 # Load Locations Database
+locations_error = None
 if os.path.exists(LOCATIONS_PATH):
-    with open(LOCATIONS_PATH, 'r') as f:
-        locations_db = json.load(f)
+    try:
+        with open(LOCATIONS_PATH, 'r') as f:
+            locations_db = json.load(f)
+    except Exception as e:
+        locations_error = str(e)
+        locations_db = {}
 else:
+    locations_error = "File not found"
     locations_db = {}
     print(f"Warning: {LOCATIONS_PATH} not found.")
 
 # Load ML Model
+startup_error = None
 if os.path.exists(MODEL_PATH):
     try:
         with open(MODEL_PATH, 'rb') as f:
@@ -53,7 +72,9 @@ if os.path.exists(MODEL_PATH):
             cluster_centers = model_data['cluster_centers']
             label_encoder_classes = model_data.get('label_encoder_classes', [])
     except Exception as e:
-        print(f"Error loading ML model: {e}")
+        import traceback
+        startup_error = f"Error loading ML model: {e}\n{traceback.format_exc()}"
+        print(startup_error)
         ml_model = None
         feature_names = []
         cluster_centers = []
@@ -63,7 +84,8 @@ else:
     feature_names = []
     cluster_centers = []
     label_encoder_classes = []
-    print(f"Warning: {MODEL_PATH} not found. Predictions will use heuristics.")
+    startup_error = f"Warning: {MODEL_PATH} not found."
+    print(startup_error)
 
 
 VEHICLE_WEIGHTS = {
@@ -125,6 +147,31 @@ class PredictionRequest(BaseModel):
 class RoutingRequest(BaseModel):
     n_targets: Optional[int] = 15
     location: Optional[List[float]] = None
+
+@app.get("/api/health")
+def health_check():
+    import sys
+    return {
+        "status": "ok",
+        "cwd": os.getcwd(),
+        "files_in_cwd": os.listdir(os.getcwd()) if os.path.exists(os.getcwd()) else [],
+        "files_in_backend": os.listdir(os.path.join(os.getcwd(), "backend")) if os.path.exists(os.path.join(os.getcwd(), "backend")) else [],
+        "sys_path": sys.path,
+        "has_stats": bool(overall_stats),
+        "has_hotspots": bool(hotspots_db),
+        "has_locations": bool(locations_db),
+        "has_model": ml_model is not None,
+        "startup_error": startup_error,
+        "hotspots_error": hotspots_error,
+        "stats_error": stats_error,
+        "locations_error": locations_error,
+        "paths": {
+            "model": MODEL_PATH,
+            "clusters": CLUSTERS_PATH,
+            "stats": STATS_PATH,
+            "locations": LOCATIONS_PATH
+        }
+    }
 
 @app.get("/api/stats")
 def get_stats():
