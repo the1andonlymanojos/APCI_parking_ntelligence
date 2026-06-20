@@ -1,0 +1,53 @@
+{
+    "Model A (Tuned Hyperparameters)": {
+        "random": {
+            "r2": 0.8505966717011223,
+            "acc": 0.9167029292536014
+        },
+        "chrono": {
+            "r2": 0.8255279389843548,
+            "acc": 0.9002129949843116
+        },
+        "params": {
+            "subsample": 0.7,
+            "n_estimators": 200,
+            "min_child_weight": 1,
+            "max_depth": 6,
+            "learning_rate": 0.2,
+            "colsample_bytree": 0.8
+        }
+    },
+    "Model B (Feature Engineering)": {
+        "random": {
+            "r2": 0.8647489514700397,
+            "acc": 0.9245127453450289
+        },
+        "chrono": {
+            "r2": 0.8447600371391754,
+            "acc": 0.9117101435998443
+        },
+        "params": {
+            "n_estimators": 100,
+            "max_depth": 6,
+            "learning_rate": 0.3
+        }
+    },
+    "Model A+B (Tuning + Feature Eng)": {
+        "random": {
+            "r2": 0.8752702507946277,
+            "acc": 0.9221537686370611
+        },
+        "chrono": {
+            "r2": 0.8476689511209852,
+            "acc": 0.9088702104756888
+        },
+        "params": {
+            "subsample": 0.9,
+            "n_estimators": 300,
+            "min_child_weight": 3,
+            "max_depth": 8,
+            "learning_rate": 0.05,
+            "colsample_bytree": 0.7
+        }
+    }
+}

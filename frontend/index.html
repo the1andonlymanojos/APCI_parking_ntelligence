@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Driven Parking Congestion Intelligence (APCI)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-square-parking brand-logo"></i>
+                <div class="brand-text">
+                    <h1>APCI System</h1>
+                    <span>Parking & Traffic Intelligence</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-tab="dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+                <a href="#" class="nav-item" data-tab="hotspots"><i class="fa-solid fa-fire"></i> Hotspots Map</a>
+                <a href="#" class="nav-item" data-tab="predictor"><i class="fa-solid fa-brain"></i> Impact Predictor</a>
+                <a href="#" class="nav-item" data-tab="routing"><i class="fa-solid fa-route"></i> Patrol Router</a>
+            </nav>
+
+            <div class="sidebar-stats">
+                <div class="stat-card-mini">
+                    <span class="stat-title">Total Violations</span>
+                    <span class="stat-value" id="sidebar-total-violations">--</span>
+                </div>
+                <div class="stat-card-mini">
+                    <span class="stat-title">Hotspots Detected</span>
+                    <span class="stat-value" id="sidebar-total-hotspots">--</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navbar -->
+            <header class="top-nav">
+                <div class="page-title">
+                    <h2 id="current-tab-title">Operational Dashboard</h2>
+                    <p id="current-tab-subtitle">Real-time illegal parking hotspot analysis and traffic impact metrics.</p>
+                </div>
+                <div class="system-status-widget">
+                    <div class="status-indicator">
+                        <span class="status-dot pulsing"></span>
+                        <span class="status-label">Monitoring Network Live</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab-panel active">
+                <div class="dataset-badge">
+                    <i class="fa-solid fa-database"></i>
+                    Dataset: Jan – May 2025
+                    <span class="dataset-sep">·</span>
+                    <span id="total-records-badge">--</span> violation records
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card border-left-danger">
+                        <div class="card-data">
+                            <h3>Average Traffic Impact</h3>
+                            <span class="number" id="avg-impact-score">--</span>
+                            <span class="card-desc">Estimated capacity loss of blocked road lanes</span>
+                        </div>
+                    </div>
+                    <div class="stat-card border-left-warning">
+                        <div class="card-data">
+                            <h3>Chronic Recurrence</h3>
+                            <span class="number" id="avg-recurrence">--</span>
+                            <span class="card-desc">Offenses linked to repeat-offender registrations</span>
+                        </div>
+                    </div>
+                    <div class="stat-card border-left-info">
+                        <div class="card-data">
+                            <h3>Arterial Road Blockage</h3>
+                            <span class="number" id="main-road-pct">--</span>
+                            <span class="card-desc">Violations occurring on major high-capacity roads</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-3-charts">
+                    <div class="chart-container glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-regular fa-clock"></i> Violation Hourly Distribution</h3>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="hourlyChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-truck-pickup"></i> Vehicle Type Distribution</h3>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="vehicleChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-calendar-week"></i> Weekly Violation Pattern</h3>
+                            <p>Weekdays (cyan) vs weekends (amber)</p>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="dowChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-3x1 margin-top">
+                    <!-- Column 1: Operational Insights -->
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-circle-info"></i> Operational Analysis</h3>
+                            <p>City-wide illegal parking insights.</p>
+                        </div>
+                        <div class="insights-container">
+                            <p class="insights-intro" style="font-size: 11px; margin-bottom: 10px;">
+                                Total dataset: <strong><span id="insight-total-violations">--</span></strong> events.
+                            </p>
+                            <div class="insights-grid">
+                                <div class="insight-box">
+                                    <div class="insight-value text-secondary">04:00 - 06:00 AM</div>
+                                    <div class="insight-title">Peak Infractions Hour</div>
+                                    <div class="insight-text">Early morning logistics shipping drops compliance.</div>
+                                </div>
+                                <div class="insight-box">
+                                    <div class="insight-value text-primary">75%+ Volume</div>
+                                    <div class="insight-title">Two-Wheelers &amp; Cars</div>
+                                    <div class="insight-text">Private vehicles dominate violations.</div>
+                                </div>
+                                <div class="insight-box">
+                                    <div class="insight-value text-warning">22.3% Recidivism</div>
+                                    <div class="insight-title">Repeat Violations</div>
+                                    <div class="insight-text">Chronic repeat offender registrations require ALPR fine triggers.</div>
+                                </div>
+                            </div>
+                            <!-- Gap #6: violation type mini chart -->
+                            <div class="vt-chart-section">
+                                <p class="vt-chart-label"><i class="fa-solid fa-tags"></i> Violation Categories (Top 5)</p>
+                                <div style="height: 110px;">
+                                    <canvas id="violationTypesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Congestion Correlation Scatter Plot -->
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-chart-line"></i> Congestion Correlation</h3>
+                            <p>Violation density vs. average traffic impact per cluster.</p>
+                        </div>
+                        <div class="chart-wrapper" style="height: 240px; padding: 10px 16px;">
+                            <canvas id="correlationChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Jurisdictions Leaderboard -->
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-building-shield"></i> Top Divisions</h3>
+                            <p>Jurisdictions with the highest volumes of violations.</p>
+                        </div>
+                        <div class="leaderboard-container" style="padding: 10px 16px;">
+                            <table class="jurisdiction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Division</th>
+                                        <th class="text-right">Violations</th>
+                                        <th class="text-right" style="width: 35%;">Share</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="jurisdiction-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center" style="color: var(--text-secondary); padding: 40px 0;">
+                                            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Hotspots Map Tab -->
+            <section id="tab-hotspots" class="tab-panel">
+                <div class="map-view-layout">
+                    <div class="map-wrapper glass-panel">
+                        <div id="hotspot-map"></div>
+                    </div>
+                    <div class="map-sidebar glass-panel">
+                        <!-- Timeline Control -->
+                        <div class="timeline-control-panel">
+                            <div class="control-header">
+                                <span><i class="fa-solid fa-clock-rotate-left"></i> Hourly Traffic Timeline</span>
+                                <span id="simulation-hour-label" style="font-weight: 700; color: var(--color-secondary);">--:--</span>
+                            </div>
+                            <input type="range" id="map-timeline-slider" min="0" max="23.9" step="0.1" value="0" class="slider-modern">
+                            <div class="slider-ticks">
+                                <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
+                            </div>
+                            <span class="help-text">Drag to any hour of the day. Dot size &amp; color reflect real violation intensity at that hour based on historical data.</span>
+                        </div>
+
+                        <!-- Predictive Dispatch Alerts Container -->
+                        <div class="proactive-alerts-panel" id="dispatch-alerts-container">
+                            <div class="alerts-header">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>Predictive Dispatch Alerts</span>
+                            </div>
+                            <div id="dispatch-alerts-list">
+                                <!-- Populated dynamically -->
+                                <div class="no-alerts-msg">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    No active chokepoints predicted.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel-header" style="border-top: 1px solid var(--glass-border); margin-top: auto;">
+                            <h3 style="font-size: 13px;"><i class="fa-solid fa-fire"></i> Enforcement Priority Zones</h3>
+                        </div>
+                        <div class="hotspots-list-wrapper" id="hotspots-list">
+                            <!-- Populated by JS -->
+                            <div class="loading-placeholder">Loading hotspots...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Impact Predictor Tab -->
+            <section id="tab-predictor" class="tab-panel">
+                <div class="predictor-layout">
+                    <div class="predictor-form-panel glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-brain"></i> Congestion Predictor Tool</h3>
+                            <p>Select location on map and input parameters to simulate traffic impact.</p>
+                        </div>
+                        <form id="prediction-form" class="modern-form">
+                            <div class="form-group">
+                                <label for="pred-location-select">Select Junction or Address</label>
+                                <select id="pred-location-select" required>
+                                    <option value="">-- Loading Locations... --</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="pred-lat">
+                            <input type="hidden" id="pred-lon">
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label for="pred-hour">Hour of Day (0-23)</label>
+                                    <input type="number" id="pred-hour" min="0" max="23" value="12" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pred-day">Day of Week</label>
+                                    <select id="pred-day" required>
+                                        <option value="0">Monday</option>
+                                        <option value="1">Tuesday</option>
+                                        <option value="2">Wednesday</option>
+                                        <option value="3">Thursday</option>
+                                        <option value="4">Friday</option>
+                                        <option value="5">Saturday</option>
+                                        <option value="6">Sunday</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="pred-vehicle">Vehicle Type</label>
+                                <select id="pred-vehicle" required>
+                                    <option value="CAR">Car</option>
+                                    <option value="SCOOTER">Two Wheeler / Scooter</option>
+                                    <option value="BUS">Bus / Heavy Passenger</option>
+                                    <option value="TRUCK">Truck / Goods Carrier</option>
+                                    <option value="AUTO RICKSHAW">Auto Rickshaw</option>
+                                    <option value="MAXI-CAB">Maxi Cab / Taxi</option>
+                                </select>
+                            </div>
+                            <div class="form-row-2 checkbox-row">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" id="pred-main-road">
+                                    <span class="checkmark"></span>
+                                    Is Main Road
+                                </label>
+                                <label class="checkbox-container">
+                                    <input type="checkbox" id="pred-intersection">
+                                    <span class="checkmark"></span>
+                                    Near Intersection
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-calculator"></i> Calculate Impact</button>
+                        </form>
+                    </div>
+
+                    <div class="predictor-results-panel glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-square-poll-vertical"></i> Simulation Results</h3>
+                        </div>
+                        <div id="prediction-result" class="result-placeholder">
+                            <i class="fa-solid fa-map-location-dot placeholder-icon"></i>
+                            <p>Fill out the form and submit to run the predictive model.</p>
+                            <span class="tip-text">Tip: You can click anywhere on the map in the Hotspots or Router tab, and the location will autofill here.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Patrol Router Tab -->
+            <section id="tab-routing" class="tab-panel">
+                <div class="router-layout">
+                    <div class="router-sidebar glass-panel">
+                        <div class="panel-header">
+                            <h3><i class="fa-solid fa-route"></i> Patrol Router Planner</h3>
+                            <p>Optimize deployment paths for parking enforcement teams.</p>
+                            <div class="router-explanation" style="font-size: 11px; color: var(--text-secondary); background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); padding: 8px 10px; border-radius: 6px; margin: 8px 0 16px 0; line-height: 1.4;">
+                                <i class="fa-solid fa-circle-info" style="color: var(--color-secondary);"></i> <b>How it works:</b> Choose a starting location. The system will automatically select the top high-impact parking hotspots in the city (based on violation density and traffic impact scores) and solve the Travelling Salesperson Problem (TSP) using a Nearest Neighbor algorithm to plan the shortest sequential patrol path.
+                            </div>
+                        </div>
+                        <div class="router-controls">
+                            <div class="form-group">
+                                <label for="route-targets">Number of Hotspots to Clear</label>
+                                <input type="number" id="route-targets" min="3" max="50" value="10" class="input-modern">
+                            </div>
+                            <div class="form-group">
+                                <label for="route-start-select">Starting Location</label>
+                                <select id="route-start-select" class="input-modern">
+                                    <option value="">-- Choose Starting Location --</option>
+                                </select>
+                                <input type="hidden" id="route-start-lat">
+                                <input type="hidden" id="route-start-lon">
+                                <span class="help-text">Leave blank to start at highest-impact hotspot.</span>
+                            </div>
+                            <button id="btn-generate-route" class="btn btn-warning btn-block"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Route</button>
+                        </div>
+                        <div class="route-summary" id="route-summary-panel" style="display: none;">
+                            <hr>
+                            <div class="route-metric-row">
+                                <div class="route-metric">
+                                    <span class="label">Total Route Distance</span>
+                                    <span class="value" id="route-total-distance">--</span>
+                                </div>
+                                <div class="route-metric">
+                                    <span class="label">Stops Count</span>
+                                    <span class="value" id="route-stops-count">--</span>
+                                </div>
+                            </div>
+                            <h4>Patrol Sequence</h4>
+                            <div class="patrol-steps" id="patrol-steps-list">
+                                <!-- Steps listed here -->
+                            </div>
+                            <button id="btn-export-route" class="btn btn-export btn-block" style="display:none;">
+                                <i class="fa-solid fa-file-arrow-down"></i> Export Patrol Route (.txt)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="router-map-wrapper glass-panel">
+                        <div id="router-map"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Leaflet.js JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Application JS -->
+    <script src="app.js"></script>
+</body>
+</html>
