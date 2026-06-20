@@ -12,19 +12,60 @@ from backend.optimizer import optimize_patrol_route
 
 app = FastAPI(title="AI Parking Congestion Intelligence API")
 
-# Load precalculated assets
-MODEL_PATH = "backend/parking_ml_model.pkl"
-CLUSTERS_PATH = "backend/hotspot_clusters.json"
-STATS_PATH = "backend/overall_stats.json"
-LOCATIONS_PATH = "backend/locations_db.json"
+# Load precalculated assets relative to backend directory (works 100% reliably in serverless environments)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "parking_ml_model.pkl")
+CLUSTERS_PATH = os.path.join(BASE_DIR, "hotspot_clusters.json")
+STATS_PATH = os.path.join(BASE_DIR, "overall_stats.json")
+LOCATIONS_PATH = os.path.join(BASE_DIR, "locations_db.json")
 
-ml_model = None
-feature_names = []
-cluster_centers = []
-hotspots_db = []
-overall_stats = {}
-locations_db = {}
-label_encoder = None
+# Load assets immediately on import (essential for stateless serverless environments like Vercel)
+# Load Hotspots Database
+if os.path.exists(CLUSTERS_PATH):
+    with open(CLUSTERS_PATH, 'r') as f:
+        hotspots_db = json.load(f)
+else:
+    hotspots_db = []
+    print(f"Warning: {CLUSTERS_PATH} not found.")
+
+# Load Overall Statistics
+if os.path.exists(STATS_PATH):
+    with open(STATS_PATH, 'r') as f:
+        overall_stats = json.load(f)
+else:
+    overall_stats = {}
+    print(f"Warning: {STATS_PATH} not found.")
+
+# Load Locations Database
+if os.path.exists(LOCATIONS_PATH):
+    with open(LOCATIONS_PATH, 'r') as f:
+        locations_db = json.load(f)
+else:
+    locations_db = {}
+    print(f"Warning: {LOCATIONS_PATH} not found.")
+
+# Load ML Model
+if os.path.exists(MODEL_PATH):
+    try:
+        with open(MODEL_PATH, 'rb') as f:
+            model_data = pickle.load(f)
+            ml_model = model_data['model']
+            feature_names = model_data['features']
+            cluster_centers = model_data['cluster_centers']
+            label_encoder = model_data.get('label_encoder')
+    except Exception as e:
+        print(f"Error loading ML model: {e}")
+        ml_model = None
+        feature_names = []
+        cluster_centers = []
+        label_encoder = None
+else:
+    ml_model = None
+    feature_names = []
+    cluster_centers = []
+    label_encoder = None
+    print(f"Warning: {MODEL_PATH} not found. Predictions will use heuristics.")
+
 
 VEHICLE_WEIGHTS = {
     'BUS': 2.0, 'TRUCK': 2.0, 'HEAVY GOODS VEHICLE': 2.0, 'MAXI-CAB': 1.8,
@@ -71,41 +112,7 @@ COMMERCIAL_HUBS = [
     [12.9950, 77.7290]  # Whitefield
 ]
 
-@app.on_event("startup")
-def load_assets():
-    global ml_model, feature_names, cluster_centers, hotspots_db, overall_stats, locations_db, label_encoder
-    
-    # Load Hotspots Database
-    if os.path.exists(CLUSTERS_PATH):
-        with open(CLUSTERS_PATH, 'r') as f:
-            hotspots_db = json.load(f)
-    else:
-        print(f"Warning: {CLUSTERS_PATH} not found.")
-
-    # Load Overall Statistics
-    if os.path.exists(STATS_PATH):
-        with open(STATS_PATH, 'r') as f:
-            overall_stats = json.load(f)
-    else:
-        print(f"Warning: {STATS_PATH} not found.")
-
-    # Load Locations Database
-    if os.path.exists(LOCATIONS_PATH):
-        with open(LOCATIONS_PATH, 'r') as f:
-            locations_db = json.load(f)
-    else:
-        print(f"Warning: {LOCATIONS_PATH} not found.")
-
-    # Load ML Model
-    if os.path.exists(MODEL_PATH):
-        with open(MODEL_PATH, 'rb') as f:
-            model_data = pickle.load(f)
-            ml_model = model_data['model']
-            feature_names = model_data['features']
-            cluster_centers = model_data['cluster_centers']
-            label_encoder = model_data.get('label_encoder')
-    else:
-        print(f"Warning: {MODEL_PATH} not found. Predictions will use heuristics.")
+# (Assets are loaded globally at import time above to support serverless lifecycles)
 
 # Pydantic schemas for API inputs
 class PredictionRequest(BaseModel):
